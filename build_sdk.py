@@ -237,7 +237,7 @@ def test_tool() -> None:
     assert r == 0
 
 
-def 54514(tool_target: Path, target_triple: str) -> None:
+def build_tool(tool_target: Path, target_triple: str) -> None:
     r = system(
         f"cd tool/microkit && cargo build --release --target {target_triple}"
     )
@@ -368,7 +368,7 @@ def build_rel4(
     cmd = (
         f"cmake -GNinja -DCMAKE_INSTALL_PREFIX={rel4_install_dir.absolute()} "
         f" -DCROSS_COMPILER_PREFIX=aarch64-linux-gnu- "
-        f"-DKernelArch=arm"
+        f" -DKernelArch=arm "
         f"-C {sel4_c_impl_dir.absolute()}/kernel-settings-aarch64.cmake "
         f"-S {sel4_c_impl_dir.absolute()} -B {rel4_build_dir.absolute()}")
 
