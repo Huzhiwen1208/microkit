@@ -270,8 +270,6 @@ def build_sel4(
     sel4_install_dir.mkdir(exist_ok=True, parents=True)
     sel4_build_dir.mkdir(exist_ok=True, parents=True)
 
-    print(f"Building sel4: {sel4_dir=} {root_dir=} {build_dir=} {board=} {config=}")
-
     config_args = list(board.kernel_options.items()) + list(config.kernel_options.items())
     config_strs = []
     for arg, val in sorted(config_args):
@@ -290,16 +288,18 @@ def build_sel4(
         f" {config_str} "
         f"-S {sel4_dir.absolute()} -B {sel4_build_dir.absolute()}")
 
+    print("Configuring seL4 with:", cmd)
+
     r = system(cmd)
     if r != 0:
         raise Exception(f"Error configuring sel4: cmd={cmd}")
 
-    cmd = f"cmake --build {sel4_build_dir.absolute()}"
+    cmd = f"ninja -C {sel4_build_dir.absolute()} all"
     r = system(cmd)
     if r != 0:
         raise Exception(f"Error building sel4: cmd={cmd}")
 
-    cmd = f"cmake --install {sel4_build_dir.absolute()}"
+    cmd = f"ninja -C {sel4_build_dir.absolute()} install"
     r = system(cmd)
     if r != 0:
         raise Exception(f"Error installing sel4: cmd={cmd}")
@@ -316,6 +316,87 @@ def build_sel4(
     include_dir = root_dir / "board" / board.name / config.name / "include"
     for source in ("kernel_Config", "libsel4", "libsel4/sel4_Config", "libsel4/autoconf"):
         source_dir = sel4_install_dir / source / "include"
+        for p in source_dir.rglob("*"):
+            if not p.is_file():
+                continue
+            rel = p.relative_to(source_dir)
+            dest = include_dir / rel
+            dest.parent.mkdir(exist_ok=True, parents=True)
+            dest.unlink(missing_ok=True)
+            copy(p, dest)
+            dest.chmod(0o444)
+
+def build_rel4(
+    rel4_dir: Path,
+    root_dir: Path,
+    build_dir: Path,
+    board: BoardInfo,
+    config: ConfigInfo,
+) -> None:
+    """Build reL4"""
+    build_dir = build_dir / board.name / config.name / "rel4"
+    build_dir.mkdir(exist_ok=True, parents=True)
+
+    rel4_install_dir = build_dir / "install"
+    rel4_build_dir = build_dir / "build"
+
+    rel4_install_dir.mkdir(exist_ok=True, parents=True)
+    rel4_build_dir.mkdir(exist_ok=True, parents=True)
+
+    sel4_c_impl_dir = rel4_dir / "../seL4_c_impl"
+    rel4_kernel_dir = rel4_dir
+
+    cmd = f"cd ../reL4 && cargo build --release --target aarch64-unknown-none-softfloat "
+    r = system(cmd)
+    if r != 0:
+        raise Exception(f"Error building reL4: cmd={cmd}")
+
+    config_args = list(board.kernel_options.items()) + list(config.kernel_options.items())
+    config_strs = []
+    for arg, val in sorted(config_args):
+        if isinstance(val, bool):
+            str_val = "ON" if val else "OFF"
+        else:
+            str_val = str(val)
+        s = f"-D{arg}={str_val}"
+        config_strs.append(s)
+    config_str = " ".join(config_strs)
+
+    cmd = (
+        f"cmake -GNinja -DCMAKE_INSTALL_PREFIX={rel4_install_dir.absolute()} "
+        f" -DPYTHON3={executable} "
+        f" -DCROSS_COMPILER_PREFIX={TOOLCHAIN_PREFIX}"
+        f"-C {sel4_c_impl_dir.absolute()}/kernel-settings-aarch64.cmake "
+        f"-S {sel4_c_impl_dir.absolute()} -B {rel4_build_dir.absolute()}")
+
+    print("Configuring seL4 with:", cmd)
+
+    r = system(cmd)
+    if r != 0:
+        raise Exception(f"Error configuring rel4: cmd={cmd}")
+
+    cmd = f"ninja -C {rel4_build_dir.absolute()} all"
+    r = system(cmd)
+    if r != 0:
+        raise Exception(f"Error building rel4: cmd={cmd}")
+
+    cmd = f"ninja -C {rel4_build_dir.absolute()} install"
+    r = system(cmd)
+    if r != 0:
+        raise Exception(f"Error installing rel4: cmd={cmd}")
+
+    elf = rel4_install_dir / "bin" / "kernel.elf"
+    dest = (
+        root_dir / "board" / board.name / config.name / "elf" / "sel4.elf"
+    )
+    dest.unlink(missing_ok=True)
+    copy(elf, dest)
+    # Make output read-only
+    dest.chmod(0o444)
+
+    include_dir = root_dir / "board" / board.name / config.name / "include"
+    for source in ("kernel_Config", "libsel4", "libsel4/sel4_Config", "libsel4/autoconf"):
+        source_dir = rel4_install_dir / source / "include"
         for p in source_dir.rglob("*"):
             if not p.is_file():
                 continue
@@ -501,7 +582,8 @@ def main() -> None:
     build_dir = Path("build")
     for board in selected_boards:
         for config in selected_configs:
-            build_sel4(sel4_dir, root_dir, build_dir, board, config)
+            # build_sel4(sel4_dir, root_dir, build_dir, board, config)
+            build_rel4(sel4_dir, root_dir, build_dir, board, config)
             loader_defines = [
                 ("LINK_ADDRESS", hex(board.loader_link_address)),
                 ("PHYSICAL_ADDRESS_BITS", 40)
