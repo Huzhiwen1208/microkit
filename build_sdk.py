@@ -367,8 +367,7 @@ def build_rel4(
 
     cmd = (
         f"cmake -GNinja -DCMAKE_INSTALL_PREFIX={rel4_install_dir.absolute()} "
-        f" -DPYTHON3={executable} "
-        f" -DCROSS_COMPILER_PREFIX={TOOLCHAIN_PREFIX} "
+        f" -DCROSS_COMPILER_PREFIX=aarch64-linux-gnu- "
         f"-C {sel4_c_impl_dir.absolute()}/kernel-settings-aarch64.cmake "
         f"-S {sel4_c_impl_dir.absolute()} -B {rel4_build_dir.absolute()}")
 
