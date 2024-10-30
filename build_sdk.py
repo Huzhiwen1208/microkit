@@ -346,7 +346,7 @@ def build_rel4(
     sel4_c_impl_dir = rel4_dir / "../seL4_c_impl"
     rel4_kernel_dir = rel4_dir
 
-    cmd = f"cd ../reL4 && cargo build --release --target aarch64-unknown-none-softfloat "
+    cmd = f"cd ./reL4 && cargo build --release --target aarch64-unknown-none-softfloat "
     r = system(cmd)
     if r != 0:
         raise Exception(f"Error building reL4: cmd={cmd}")
