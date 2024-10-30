@@ -82,7 +82,7 @@ SUPPORTED_CONFIGS = (
         name="release",
         debug=False,
         kernel_options={},
-    )
+    ),
 )
 
 
