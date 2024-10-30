@@ -237,7 +237,7 @@ def test_tool() -> None:
     assert r == 0
 
 
-def build_tool(tool_target: Path, target_triple: str) -> None:
+def 54514(tool_target: Path, target_triple: str) -> None:
     r = system(
         f"cd tool/microkit && cargo build --release --target {target_triple}"
     )
@@ -345,7 +345,10 @@ def build_rel4(
 
     sel4_c_impl_dir = rel4_dir / "../seL4_c_impl"
     rel4_kernel_dir = rel4_dir
-
+    # cmd = "rustup install nightly-2024-01-31 && rustup default nightly-2024-01-31 "
+    # r = system(cmd)
+    # if r != 0:
+    #     raise Exception(f"Error building reL4: cmd={cmd}")
     cmd = f"cd ./reL4 && cargo build --release --target aarch64-unknown-none-softfloat "
     r = system(cmd)
     if r != 0:
@@ -365,7 +368,7 @@ def build_rel4(
     cmd = (
         f"cmake -GNinja -DCMAKE_INSTALL_PREFIX={rel4_install_dir.absolute()} "
         f" -DPYTHON3={executable} "
-        f" -DCROSS_COMPILER_PREFIX={TOOLCHAIN_PREFIX}"
+        f" -DCROSS_COMPILER_PREFIX={TOOLCHAIN_PREFIX} "
         f"-C {sel4_c_impl_dir.absolute()}/kernel-settings-aarch64.cmake "
         f"-S {sel4_c_impl_dir.absolute()} -B {rel4_build_dir.absolute()}")
 
