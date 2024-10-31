@@ -60,15 +60,11 @@ SUPPORTED_BOARDS = (
         gcc_cpu="cortex-a53",
         loader_link_address=0x70000000,
         kernel_options={
-            "KernelArch": "arm",
-            "ARM_CPU": "cortex-a57",
-            "KernelSel4Arch": "aarch64",
-            "KernelVerificationBuild": False,
             "KernelPlatform": "qemu-arm-virt",
-            "KernelIsMCS": False,
+            "KernelIsMCS": True,
             "KernelArmExportPCNTUser": True,
             "QEMU_MEMORY": "2048",
-            "KernelArmHypervisorSupport": False,
+            "KernelArmHypervisorSupport": True,
         },
         examples={
             "hello": Path("example/qemu_virt_aarch64/hello"),
@@ -84,7 +80,6 @@ SUPPORTED_CONFIGS = (
         kernel_options={},
     ),
 )
-
 
 def tar_filter(tarinfo: TarInfo) -> TarInfo:
     """This is used to change the tarinfo when created the .tar.gz archive.
@@ -245,7 +240,7 @@ def build_rel4(
     # r = system(cmd)
     # if r != 0:
     #     raise Exception(f"Error building reL4: cmd={cmd}")
-    cmd = f"cd ./reL4 && cargo build --release --target aarch64-unknown-none-softfloat "
+    cmd = f"cd ../rel4_kernel && cargo build --release --target aarch64-unknown-none-softfloat "
     r = system(cmd)
     if r != 0:
         raise Exception(f"Error building reL4: cmd={cmd}")

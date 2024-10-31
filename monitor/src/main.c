@@ -3,59 +3,59 @@
  *
  * SPDX-License-Identifier: BSD-2-Clause
  */
-/*
- * The Microkit Monitor.
- *
- * The monitor is the initial task in a Microkit system.
- *
- * The monitor fulfills two purposes:
- *
- *   1. creating the initial state of the system.
- *   2. acting as the fault handler for for protection domains.
- *
- * Initialisation is performed by executing a number of kernel
- * invocations to create and configure kernel objects.
- *
- * The specific invocations to make are configured by the build
- * tool; the monitor simply reads a data structure to execute
- * each invocation one at a time.
- *
- * The process occurs in a two step manner. The first bootstrap
- * step execute the `bootstrap_invocations` only. The purpose
- * of this bootstrap is to get the system to the point for the
- * `system_invocations` is mapped into the monitors address space.
- * Once this occurs it is possible for the monitor to switch to
- * executing invocation from this second data structure.
- *
- * The motivation for this design is to keep both the initial
- * task image and the initial CNode as small, fixed size entities.
- *
- * Fixed size allows both kernel and monitor to avoid unnecesary
- * recompilation for different system configurations. Keeping things
- * small optimizes overall memory usage.
- *
- *
- */
+ /*
+  * The Microkit Monitor.
+  *
+  * The monitor is the initial task in a Microkit system.
+  *
+  * The monitor fulfills two purposes:
+  *
+  *   1. creating the initial state of the system.
+  *   2. acting as the fault handler for for protection domains.
+  *
+  * Initialisation is performed by executing a number of kernel
+  * invocations to create and configure kernel objects.
+  *
+  * The specific invocations to make are configured by the build
+  * tool; the monitor simply reads a data structure to execute
+  * each invocation one at a time.
+  *
+  * The process occurs in a two step manner. The first bootstrap
+  * step execute the `bootstrap_invocations` only. The purpose
+  * of this bootstrap is to get the system to the point for the
+  * `system_invocations` is mapped into the monitors address space.
+  * Once this occurs it is possible for the monitor to switch to
+  * executing invocation from this second data structure.
+  *
+  * The motivation for this design is to keep both the initial
+  * task image and the initial CNode as small, fixed size entities.
+  *
+  * Fixed size allows both kernel and monitor to avoid unnecesary
+  * recompilation for different system configurations. Keeping things
+  * small optimizes overall memory usage.
+  *
+  *
+  */
 
-/*
- * Why this you may ask? Well, the seL4 headers depend on
- * a global `__sel4_ipc_buffer` which is a pointer to the
- * thread's IPC buffer. Which is reasonable enough, passing
- * that explicitly to every function would be annoying.
- *
- * The seL4 headers make this global a thread-local global,
- * which is also reasonable, considering it applies to a
- * specific thread! But, for our purposes we don't have threads!
- *
- * Thread local storage is painful and annoying to configure.
- * We'd really rather NOT use thread local storage (especially
- * consider we never have more than one thread in a Vspace)
- *
- * So, by defining __thread to be empty it means the variable
- * becomes a true global rather than thread local storage
- * variable, which means, we don't need to waste a bunch
- * of effort and complexity on thread local storage implementation.
- */
+  /*
+   * Why this you may ask? Well, the seL4 headers depend on
+   * a global `__sel4_ipc_buffer` which is a pointer to the
+   * thread's IPC buffer. Which is reasonable enough, passing
+   * that explicitly to every function would be annoying.
+   *
+   * The seL4 headers make this global a thread-local global,
+   * which is also reasonable, considering it applies to a
+   * specific thread! But, for our purposes we don't have threads!
+   *
+   * Thread local storage is painful and annoying to configure.
+   * We'd really rather NOT use thread local storage (especially
+   * consider we never have more than one thread in a Vspace)
+   *
+   * So, by defining __thread to be empty it means the variable
+   * becomes a true global rather than thread local storage
+   * variable, which means, we don't need to waste a bunch
+   * of effort and complexity on thread local storage implementation.
+   */
 #define __thread
 
 #include <stdbool.h>
@@ -71,14 +71,14 @@
 
 #define MAX_UNTYPED_REGIONS 256
 
-/* Max words available for bootstrap invocations.
- *
- * Only a small number of syscalls is required to
- * get to the point where the main syscalls data
- * is mapped in, so we keep this small.
- *
- * FIXME: This can be smaller once compression is enabled.
- */
+   /* Max words available for bootstrap invocations.
+    *
+    * Only a small number of syscalls is required to
+    * get to the point where the main syscalls data
+    * is mapped in, so we keep this small.
+    *
+    * FIXME: This can be smaller once compression is enabled.
+    */
 #define BOOTSTRAP_INVOCATION_DATA_SIZE 150
 
 seL4_IPCBuffer *__sel4_ipc_buffer;
@@ -113,8 +113,7 @@ seL4_Word *system_invocation_data = (void *)0x80000000;
 
 struct untyped_info untyped_info;
 
-static char *ec_to_string(uintptr_t ec)
-{
+static char *ec_to_string(uintptr_t ec) {
     switch (ec) {
     case 0:
         return "Unknown reason";
@@ -182,8 +181,7 @@ static char *ec_to_string(uintptr_t ec)
     return "<invalid EC>";
 }
 
-static char *data_abort_dfsc_to_string(uintptr_t dfsc)
-{
+static char *data_abort_dfsc_to_string(uintptr_t dfsc) {
     switch (dfsc) {
     case 0x00:
         return "address size fault, level 0";
@@ -245,8 +243,7 @@ static char *data_abort_dfsc_to_string(uintptr_t dfsc)
     return "<unexpected DFSC>";
 }
 
-static void check_untypeds_match(seL4_BootInfo *bi)
-{
+static void check_untypeds_match(seL4_BootInfo *bi) {
     /* Check that untypeds list generate from build matches the kernel */
     if (untyped_info.cap_start != bi->untyped.start) {
         puts("MON|ERROR: cap start mismatch. Expected cap start: ");
@@ -302,8 +299,7 @@ static void check_untypeds_match(seL4_BootInfo *bi)
     puts("MON|INFO: bootinfo untyped list matches expected list\n");
 }
 
-static unsigned perform_invocation(seL4_Word *invocation_data, unsigned offset, unsigned idx)
-{
+static unsigned perform_invocation(seL4_Word *invocation_data, unsigned offset, unsigned idx) {
     seL4_MessageInfo_t tag, out_tag;
     seL4_Error result;
     seL4_Word mr0;
@@ -405,7 +401,7 @@ static unsigned perform_invocation(seL4_Word *invocation_data, unsigned offset, 
         }
 
         out_tag = seL4_CallWithMRs(call_service, tag, &mr0, &mr1, &mr2, &mr3);
-        result = (seL4_Error) seL4_MessageInfo_get_label(out_tag);
+        result = (seL4_Error)seL4_MessageInfo_get_label(out_tag);
         if (result != seL4_NoError) {
             puts("ERROR: ");
             puthex64(result);
@@ -429,29 +425,29 @@ static unsigned perform_invocation(seL4_Word *invocation_data, unsigned offset, 
     return next_offset;
 }
 
-static void monitor(void)
-{
+static void monitor(void) {
     for (;;) {
         seL4_Word badge, label;
         seL4_MessageInfo_t tag;
         seL4_Error err;
 
-        tag = seL4_Recv(fault_ep, &badge, reply);
+        tag = seL4_Recv(fault_ep, &badge);
         label = seL4_MessageInfo_get_label(tag);
 
         seL4_Word tcb_cap = tcbs[badge];
 
         if (label == seL4_Fault_NullFault && badge < MAX_PDS) {
             /* This is a request from our PD to become passive */
-            err = seL4_SchedContext_UnbindObject(scheduling_contexts[badge], tcb_cap);
-            err = seL4_SchedContext_Bind(scheduling_contexts[badge], notification_caps[badge]);
-            if (err != seL4_NoError) {
-                puts("MON|ERROR: could not bind scheduling context to notification object");
-            } else {
-                puts("MON|INFO: PD '");
-                puts(pd_names[badge]);
-                puts("' is now passive!\n");
-            }
+            // err = seL4_SchedContext_UnbindObject(scheduling_contexts[badge], tcb_cap);
+            // err = seL4_SchedContext_Bind(scheduling_contexts[badge], notification_caps[badge]);
+            // if (err != seL4_NoError) {
+            //     puts("MON|ERROR: could not bind scheduling context to notification object");
+            // } else {
+            //     puts("MON|INFO: PD '");
+            //     puts(pd_names[badge]);
+            //     puts("' is now passive!\n");
+            // }
+            puts("[rel4_kernel] Skipping passive binding\n");
             continue;
         }
 
@@ -639,8 +635,7 @@ static void monitor(void)
     }
 }
 
-void main(seL4_BootInfo *bi)
-{
+void main(seL4_BootInfo *bi) {
     __sel4_ipc_buffer = bi->ipcBuffer;
     puts("MON|INFO: Microkit Bootstrap\n");
 

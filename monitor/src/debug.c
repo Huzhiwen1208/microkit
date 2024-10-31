@@ -12,8 +12,7 @@
 #include "debug.h"
 
 void
-dump_bootinfo(seL4_BootInfo *bi)
-{
+dump_bootinfo(seL4_BootInfo *bi) {
     unsigned i;
 
     puts("Bootinfo: ");
@@ -55,9 +54,9 @@ dump_bootinfo(seL4_BootInfo *bi)
     puts("\n");
 
     puts("schedcontrol            = ");
-    puthex64(bi->schedcontrol.start);
+    // puthex64(bi->schedcontrol.start);
     puts("..");
-    puthex64(bi->schedcontrol.end - 1);
+    // puthex64(bi->schedcontrol.end - 1);
     puts("\n");
 
     puts("userImageFrames         = ");

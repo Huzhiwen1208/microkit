@@ -34,29 +34,25 @@ extern seL4_IPCBuffer __sel4_ipc_buffer_obj;
 
 seL4_IPCBuffer *__sel4_ipc_buffer = &__sel4_ipc_buffer_obj;
 
-extern const void (*const __init_array_start [])(void);
-extern const void (*const __init_array_end [])(void);
+extern const void (*const __init_array_start[])(void);
+extern const void (*const __init_array_end[])(void);
 
-__attribute__((weak)) microkit_msginfo protected(microkit_channel ch, microkit_msginfo msginfo)
-{
+__attribute__((weak)) microkit_msginfo protected(microkit_channel ch, microkit_msginfo msginfo) {
     return seL4_MessageInfo_new(0, 0, 0, 0);
 }
 
-__attribute__((weak)) seL4_Bool fault(microkit_child child, microkit_msginfo msginfo, microkit_msginfo *reply_msginfo)
-{
+__attribute__((weak)) seL4_Bool fault(microkit_child child, microkit_msginfo msginfo, microkit_msginfo *reply_msginfo) {
     return seL4_False;
 }
 
-static void run_init_funcs(void)
-{
+static void run_init_funcs(void) {
     size_t count = __init_array_end - __init_array_start;
     for (size_t i = 0; i < count; i++) {
         __init_array_start[i]();
     }
 }
 
-static void handler_loop(void)
-{
+static void handler_loop(void) {
     bool have_reply = false;
     seL4_MessageInfo_t reply_tag;
 
@@ -65,12 +61,13 @@ static void handler_loop(void)
         seL4_MessageInfo_t tag;
 
         if (have_reply) {
-            tag = seL4_ReplyRecv(INPUT_CAP, reply_tag, &badge, REPLY_CAP);
+            tag = seL4_ReplyRecv(INPUT_CAP, reply_tag, &badge);
         } else if (microkit_have_signal) {
-            tag = seL4_NBSendRecv(microkit_signal_cap, microkit_signal_msg, INPUT_CAP, &badge, REPLY_CAP);
+            seL4_NBSend(microkit_signal_cap, microkit_signal_msg);
+            tag = seL4_NBRecv(INPUT_CAP, &badge);
             microkit_have_signal = seL4_False;
         } else {
-            tag = seL4_Recv(INPUT_CAP, &badge, REPLY_CAP);
+            tag = seL4_Recv(INPUT_CAP, &badge);
         }
 
         uint64_t is_endpoint = badge >> 63;
@@ -88,7 +85,7 @@ static void handler_loop(void)
             reply_tag = protected(badge & CHANNEL_MASK, tag);
         } else {
             unsigned int idx = 0;
-            do  {
+            do {
                 if (badge & 1) {
                     notified(idx);
                 }
@@ -99,8 +96,7 @@ static void handler_loop(void)
     }
 }
 
-void main(void)
-{
+void main(void) {
     run_init_funcs();
     init();
 
