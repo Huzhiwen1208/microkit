@@ -61,7 +61,7 @@ SUPPORTED_BOARDS = (
         loader_link_address=0x70000000,
         kernel_options={
             "KernelPlatform": "qemu-arm-virt",
-            "KernelIsMCS": True,
+            "KernelIsMCS": False,
             "KernelArmExportPCNTUser": True,
             "QEMU_MEMORY": "2048",
             "KernelArmHypervisorSupport": True,
