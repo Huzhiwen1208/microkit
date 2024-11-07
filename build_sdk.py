@@ -476,8 +476,8 @@ def main() -> None:
     build_dir = Path("build")
     for board in selected_boards:
         for config in selected_configs:
-            # build_sel4(sel4_dir, root_dir, build_dir, board, config)
-            build_rel4(sel4_dir, root_dir, build_dir, board, config)
+            build_sel4(sel4_dir, root_dir, build_dir, board, config)
+            # build_rel4(sel4_dir, root_dir, build_dir, board, config)
             loader_defines = [
                 ("LINK_ADDRESS", hex(board.loader_link_address)),
                 ("PHYSICAL_ADDRESS_BITS", 40)
