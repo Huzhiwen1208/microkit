@@ -240,7 +240,7 @@ def build_rel4(
     # r = system(cmd)
     # if r != 0:
     #     raise Exception(f"Error building reL4: cmd={cmd}")
-    cmd = f"cd ../rel4_kernel && cargo build --release --target aarch64-unknown-none-softfloat "
+    cmd = f"cd ../rel4_kernel && cargo update -p home --precise 0.5.5 && cargo build --release --target aarch64-unknown-none-softfloat "
     r = system(cmd)
     if r != 0:
         raise Exception(f"Error building reL4: cmd={cmd}")
