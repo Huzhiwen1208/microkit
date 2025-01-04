@@ -56,105 +56,6 @@ class ConfigInfo:
 
 SUPPORTED_BOARDS = (
     BoardInfo(
-        name="tqma8xqp1gb",
-        gcc_cpu="cortex-a35",
-        loader_link_address=0x80280000,
-        kernel_options={
-            "KernelPlatform": "tqma8xqp1gb",
-            "KernelIsMCS": True,
-            "KernelArmExportPCNTUser": True,
-            "KernelArmHypervisorSupport": True,
-        },
-        examples={
-            "ethernet": Path("example/tqma8xqp1gb/ethernet")
-        }
-    ),
-    BoardInfo(
-        name="zcu102",
-        gcc_cpu="cortex-a53",
-        loader_link_address=0x40000000,
-        kernel_options={
-            "KernelPlatform": "zynqmp",
-            "KernelARMPlatform": "zcu102",
-            "KernelIsMCS": True,
-            "KernelArmExportPCNTUser": True,
-            "KernelArmHypervisorSupport": True,
-        },
-        examples={
-            "hello": Path("example/zcu102/hello")
-        }
-    ),
-    BoardInfo(
-        name="maaxboard",
-        gcc_cpu="cortex-a53",
-        loader_link_address=0x40480000,
-        kernel_options={
-            "KernelPlatform": "maaxboard",
-            "KernelIsMCS": True,
-            "KernelArmExportPCNTUser": True,
-            "KernelArmHypervisorSupport": True,
-        },
-        examples={
-            "hello": Path("example/maaxboard/hello")
-        }
-    ),
-    BoardInfo(
-        name="imx8mm_evk",
-        gcc_cpu="cortex-a53",
-        loader_link_address=0x41000000,
-        kernel_options={
-            "KernelPlatform": "imx8mm-evk",
-            "KernelIsMCS": True,
-            "KernelArmExportPCNTUser": True,
-            "KernelArmHypervisorSupport": True,
-        },
-        examples={
-            "passive_server": Path("example/imx8mm_evk/passive_server")
-        }
-    ),
-    BoardInfo(
-        name="imx8mq_evk",
-        gcc_cpu="cortex-a53",
-        loader_link_address=0x41000000,
-        kernel_options={
-            "KernelPlatform": "imx8mq-evk",
-            "KernelIsMCS": True,
-            "KernelArmExportPCNTUser": True,
-            "KernelArmHypervisorSupport": True,
-        },
-        examples={
-            "hello": Path("example/imx8mq_evk/hello")
-        }
-    ),
-    BoardInfo(
-        name="odroidc2",
-        gcc_cpu="cortex-a53",
-        loader_link_address=0x20000000,
-        kernel_options={
-            "KernelPlatform": "odroidc2",
-            "KernelIsMCS": True,
-            "KernelArmExportPCNTUser": True,
-            "KernelArmHypervisorSupport": True,
-        },
-        examples={
-            "hello": Path("example/odroidc2/hello")
-        }
-    ),
-    BoardInfo(
-        name="odroidc4",
-        gcc_cpu="cortex-a55",
-        loader_link_address=0x20000000,
-        kernel_options={
-            "KernelPlatform": "odroidc4",
-            "KernelIsMCS": True,
-            "KernelArmExportPCNTUser": True,
-            "KernelArmHypervisorSupport": True,
-        },
-        examples={
-            "timer": Path("example/odroidc4/timer")
-        }
-    ),
-    BoardInfo(
         name="qemu_virt_aarch64",
         gcc_cpu="cortex-a53",
         loader_link_address=0x70000000,
@@ -177,15 +78,6 @@ SUPPORTED_CONFIGS = (
         name="release",
         debug=False,
         kernel_options={},
-    ),
-    ConfigInfo(
-        name="debug",
-        debug=True,
-        kernel_options={
-            "KernelDebugBuild": True,
-            "KernelPrinting": True,
-            "KernelVerificationBuild": False
-        }
     ),
 )
 
@@ -252,6 +144,103 @@ def build_tool(tool_target: Path, target_triple: str) -> None:
 
     tool_target.chmod(0o777)
 
+def build_rel4(
+    rel4_dir: Path,
+    root_dir: Path,
+    build_dir: Path,
+    board: BoardInfo,
+    config: ConfigInfo,
+) -> None:
+    """Build reL4"""
+    build_dir = build_dir / board.name / config.name / "rel4"
+    build_dir.mkdir(exist_ok=True, parents=True)
+
+    rel4_install_dir = build_dir / "install"
+    rel4_build_dir = build_dir / "build"
+
+    rel4_install_dir.mkdir(exist_ok=True, parents=True)
+    rel4_build_dir.mkdir(exist_ok=True, parents=True)
+
+    sel4_c_impl_dir = rel4_dir / "../seL4_c_impl"
+    rel4_kernel_dir = rel4_dir
+    # cmd = "rustup install nightly-2024-01-31 && rustup default nightly-2024-01-31 "
+    # r = system(cmd)
+    # if r != 0:
+    #     raise Exception(f"Error building reL4: cmd={cmd}")
+    cmd = f'''cd ../rel4_kernel && git checkout feature/microkit \
+        && cargo update -p home --precise 0.5.5 \
+        && cargo build --release --target aarch64-unknown-none-softfloat -F "KERNEL_MCS" '''
+    r = system(cmd)
+    if r != 0:
+        raise Exception(f"Error building reL4: cmd={cmd}")
+
+    config_args = list(board.kernel_options.items()) + list(config.kernel_options.items())
+    config_strs = []
+    for arg, val in sorted(config_args):
+        if isinstance(val, bool):
+            str_val = "ON" if val else "OFF"
+        else:
+            str_val = str(val)
+        s = f"-D{arg}={str_val}"
+        config_strs.append(s)
+    config_str = " ".join(config_strs)
+
+    # cmd = (
+    #     f"cmake -GNinja -DCMAKE_INSTALL_PREFIX={rel4_install_dir.absolute()} "
+    #     f" -DCROSS_COMPILER_PREFIX=aarch64-linux-gnu- "
+    #     f" -DKernelArch=arm "
+    #     f" -DPLATFORM=qemu-arm-virt "
+    #     f"-C {sel4_c_impl_dir.absolute()}/kernel-settings-aarch64.cmake "
+    #     f"-S {sel4_c_impl_dir.absolute()} -B {rel4_build_dir.absolute()}")
+
+    cmd = (f'''
+    cmake \
+        -DCROSS_COMPILER_PREFIX=aarch64-linux-gnu- \
+        -DCMAKE_INSTALL_PREFIX={rel4_install_dir.absolute()} \
+        -DKernelIsMCS=ON \
+        -C {sel4_c_impl_dir.absolute()}/kernel-settings-aarch64.cmake \
+        -G Ninja \
+        -S {sel4_c_impl_dir.absolute()} \
+        -B {rel4_build_dir.absolute()}
+    ''')
+
+    print("Configuring seL4 with:", cmd)
+
+    r = system(cmd)
+    if r != 0:
+        raise Exception(f"Error configuring rel4: cmd={cmd}")
+
+    cmd = f"ninja -C {rel4_build_dir.absolute()} all"
+    r = system(cmd)
+    if r != 0:
+        raise Exception(f"Error building rel4: cmd={cmd}")
+
+    cmd = f"ninja -C {rel4_build_dir.absolute()} install"
+    r = system(cmd)
+    if r != 0:
+        raise Exception(f"Error installing rel4: cmd={cmd}")
+
+    elf = rel4_install_dir / "bin" / "kernel.elf"
+    dest = (
+        root_dir / "board" / board.name / config.name / "elf" / "sel4.elf"
+    )
+    dest.unlink(missing_ok=True)
+    copy(elf, dest)
+    # Make output read-only
+    dest.chmod(0o444)
+
+    include_dir = root_dir / "board" / board.name / config.name / "include"
+    for source in ("kernel_Config", "libsel4", "libsel4/sel4_Config", "libsel4/autoconf"):
+        source_dir = rel4_install_dir / source / "include"
+        for p in source_dir.rglob("*"):
+            if not p.is_file():
+                continue
+            rel = p.relative_to(source_dir)
+            dest = include_dir / rel
+            dest.parent.mkdir(exist_ok=True, parents=True)
+            dest.unlink(missing_ok=True)
+            copy(p, dest)
+            dest.chmod(0o444)
 
 def build_sel4(
     sel4_dir: Path,
@@ -501,7 +490,8 @@ def main() -> None:
     build_dir = Path("build")
     for board in selected_boards:
         for config in selected_configs:
-            build_sel4(sel4_dir, root_dir, build_dir, board, config)
+            # build_sel4(sel4_dir, root_dir, build_dir, board, config)
+            build_rel4(sel4_dir, root_dir, build_dir, board, config)
             loader_defines = [
                 ("LINK_ADDRESS", hex(board.loader_link_address)),
                 ("PHYSICAL_ADDRESS_BITS", 40)
